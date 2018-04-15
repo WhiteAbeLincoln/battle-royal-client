@@ -7,6 +7,7 @@ import { IndigoPalette } from '../Components/css/Palette'
 import { css, cx } from 'emotion'
 import { readableColor } from 'polished'
 import type { UserInfo } from '../User/User'
+import { tokenize } from '../util'
 
 const buttonStyle = css`
   margin-left: 0;
@@ -121,22 +122,22 @@ class ChatList extends Component<ChatListProps> {
 type Props = {
   user?: UserInfo,
   message?: ChatMessage,
-  onSubmit: (res: { key: string, data: string }) => Promise<any>
+  onSubmit: (res: { key: string, data?: any }) => Promise<any>
 }
 
 type State = {
-  messages: ChatMessage[]
+  messages: ChatMessage[],
+  mutes: Set<string>
 }
 
 class Chat extends Component<Props, State> {
-  state = {
-    messages: []
-  }
+  state = { messages: []
+          , mutes: (new Set(): Set<string>) }
 
   getCommand = (msg: string) => {
     if (msg.charAt(0) !== '\\') return null
 
-    return msg.substr(1).split(' ')
+    return tokenize(msg.substr(1))
   }
 
   handleCommand = (command: string[]) => {
@@ -144,7 +145,8 @@ class Chat extends Component<Props, State> {
       { 'help': '\tUsage: \\help [command]\n\tDisplays help for commands'
       , 'start': '\tUsage: \\start\n\tVote to start the game'
       , 'kick': '\tUsage: \\kick <gamertag>\n\tVote to kick a player'
-      , 'mute': '\tUsage: \\mute <gamertag>\n\tVote to mute a player'
+      , 'mute': '\tUsage: \\mute <gamertag>\n\tMute a player'
+      , 'unmute': '\tUsage: \\unmute <gamertag>\n\tUnmute a player'
       })
 
     switch (command[0]) {
@@ -159,7 +161,26 @@ class Chat extends Component<Props, State> {
         return { local: message }
       }
       case 'start': {
-        return { remote: { key: 'vote_start', data: '' } }
+        return { local: `Voted to start game`, remote: { key: 'vote_start' } }
+      }
+      case 'kick': {
+        if (command.length !== 2) return { local: `invalid parameters` }
+        return { local: `Voted to kick ${command[1]}`, remote: { key: 'vote_kick', data: command[1] } }
+      }
+      case 'mute': {
+        if (command.length !== 2) return { local: `invalid parameters` }
+        this.setState((s, p) => ({ mutes: s.mutes.add(command[1]) }))
+
+        return { local: `Muted ${command[1]}` }
+      }
+      case 'unmute': {
+        if (command.length !== 2) return { local: `invalid parameters` }
+        this.setState((s, p) => {
+          s.mutes.delete(command[1])
+          return { mutes: s.mutes }
+        })
+
+        return { local: `Unmuted ${command[1]}` }
       }
       default:
         return { local: `command not found: ${command[0]}` }
@@ -189,7 +210,9 @@ class Chat extends Component<Props, State> {
     const lastMessage = this.state.messages[this.state.messages.length - 1]
 
     if (newMessage && newMessage !== lastMessage) {
-      this.setState((s) => ({ messages: [...s.messages, newMessage] }))
+      if (!(newMessage.from && this.state.mutes.has(newMessage.from))) {
+        this.setState((s) => ({ messages: [...s.messages, newMessage] }))
+      }
     }
   }
 

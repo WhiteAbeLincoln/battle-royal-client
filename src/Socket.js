@@ -96,8 +96,8 @@ export class SocketComponent extends Component<Props, State> {
   emit = (key: string) => (...data: any[]): Promise<any> => {
     return new Promise((resolve, reject) => {
       if (this.state.socket) {
-        this.state.socket.emit(key, ...data, (data: any) => {
-          resolve(data)
+        this.state.socket.emit(key, ...data, (res: any) => {
+          resolve(res)
         })
       } else {
         reject(data)

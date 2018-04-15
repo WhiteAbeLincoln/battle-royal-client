@@ -8,7 +8,7 @@ import { LoginContainer } from './Login/login-state'
 import { normalize } from 'polished'
 import { injectGlobal } from 'emotion'
 
-let addProtocol = !(process.env.REACT_APP_API_SERVER || '').indexOf('http') > -1
+let addProtocol = (process.env.REACT_APP_API_SERVER || '').indexOf('http') < 0
 
 export const API_URL: string = process.env.REACT_APP_API_SERVER
                              ? (addProtocol
