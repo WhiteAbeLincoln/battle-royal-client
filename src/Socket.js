@@ -1,9 +1,14 @@
 // @flow
-import React, { Component } from 'react'
+import { Component } from 'react'
 import io from 'socket.io-client'
 import type { Socket, LookupOptions } from 'socket.io-client'
 
-type SocketResult = { loading: boolean, socket: ?Socket, data: { [key: string]: any }, error: string }
+type SocketResult = { loading: boolean
+                    , socket: ?Socket
+                    , data: { [key: string]: any }
+                    , error: string
+                    , emit: (key: string) => (...data: any[]) => Promise<void>
+                    }
 
 type Props = {
   url?: string,
@@ -88,6 +93,18 @@ export class SocketComponent extends Component<Props, State> {
     this.setState((s, p) => ({ ...s, data: { ...s.data, [message]: data } }))
   }
 
+  emit = (key: string) => (...data: any[]): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      if (this.state.socket) {
+        this.state.socket.emit(key, ...data, (data: any) => {
+          resolve(data)
+        })
+      } else {
+        reject(data)
+      }
+    })
+  }
+
   componentDidMount() {
     const socket = createSocket(this.props.url
                               , this.props.options)(this.props.listeners, this.handler)
@@ -128,6 +145,7 @@ export class SocketComponent extends Component<Props, State> {
                                , authenticated: this.state.authenticated
                                , socket: this.state.socket
                                , data: this.state.data
+                               , emit: this.emit
                                , error: '' })
   }
 }

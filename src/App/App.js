@@ -56,7 +56,7 @@ class App extends Component<{}> {
               { login.state.loggedIn && login.state.user ? (
                 <Fragment>
                 <span><LinkButton to={`/user/${login.state.user.gamertag}`}>Me</LinkButton></span>
-                <span><LinkButton to="/games">Games</LinkButton></span>
+                <span><LinkButton to="/game">Start Game</LinkButton></span>
                 <span><AuthButton /></span>
                 </ Fragment>
               ) : (
@@ -73,8 +73,7 @@ class App extends Component<{}> {
               <Route path="/login" component={Login} />
               <Route path="/register" component={Register} />
               <Route path="/user/:tag" component={User} />
-              <PrivateRoute visible={login.state.loggedIn} path="/games" component={Game} />
-              <PrivateRoute visible={login.state.loggedIn} path="/game/:id" component={Game} />
+              <PrivateRoute visible={login.state.loggedIn} path="/game" component={Game} />
               <Route component={() => (<BigHeader color="#333">404 Not Found</BigHeader>)} />
             </Switch>
           </div>

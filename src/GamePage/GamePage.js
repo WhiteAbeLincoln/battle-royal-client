@@ -1,13 +1,16 @@
 // @flow
-import React, { Component } from 'react'
+import React from 'react'
 import SocketComponent from '../Socket'
+import type { ContextRouter } from 'react-router-dom'
 import { API_URL } from '../index'
 import { Subscribe } from 'unstated'
 import { LoginContainer } from '../Login/login-state'
 import Chat from './Chat'
 import UserList from './UserList'
 import Canvas from './Canvas'
+import ContainerDimensions from 'react-container-dimensions'
 import { css } from 'emotion'
+import GameLanding from './GameLanding'
 
 const messages: string[] = [ 'server_error'
                            , 'authenticated'
@@ -28,14 +31,19 @@ const innerStyle = css`
   margin: 5px;
 `
 
-const Game = () => (
+const Game = ({ location }: ContextRouter) => {
+  const url: void | string = (location.state && location.state.url)
+  if (!url) {
+    return <GameLanding />
+  }
+  return (
   <Subscribe to={[LoginContainer]}>
     {login => (
     <SocketComponent
-      url={API_URL}
+      url={url}
       auth={login.state.token}
       listeners={messages}>
-      {({ data, error, socket, loading }) => {
+      {({ data, error, socket, loading, emit }) => {
         const { new_chat_message: message
               , update_users: newUser } = data
         if (error) {
@@ -48,13 +56,21 @@ const Game = () => (
         <div className={outerStyle}>
           <UserList users={newUser} />
           <div className={innerStyle}>
-            <Canvas socket={socket} />
-            <Chat message={message} socket={socket} user={login.state.user} />
+            <div style={{width: '100%', height: '100%', display: 'flex'}}>
+              <ContainerDimensions>
+                <Canvas socket={socket} />
+              </ContainerDimensions>
+            </div>
+            <Chat
+              message={message}
+              onSubmit={data => emit(data.key)(data)}
+              user={login.state.user}
+            />
           </div>
         </div>)
       }}
     </SocketComponent>)}
-  </Subscribe>
-)
+  </Subscribe>)
+}
 
 export default Game

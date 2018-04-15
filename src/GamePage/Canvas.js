@@ -3,10 +3,12 @@ import React, { Component } from 'react'
 import { css } from 'emotion'
 import type { Socket } from 'socket.io-client'
 import fscreen from 'fscreen'
+import { render, convertDim, getMapArea } from '../Game/Render'
+import { getState } from '../Game/Game'
+import { clickCoordinates$ } from '../Game/Actions'
 
 const canvasStyle = css`
   background-color: cornflowerblue;
-  height: 100%;
 `
 
 export type Props = {
@@ -16,42 +18,38 @@ export type Props = {
 }
 
 export class Canvas extends Component<Props> {
-  canvasRef = null
+  canvasRef = (React: any).createRef()
 
-  clickHandler = (ev: MouseEvent) => {
-    if (this.canvasRef) {
-      const rect = this.canvasRef.getBoundingClientRect()
-      const x = ev.clientX - rect.left
-      const y = ev.clientY - rect.top
+  componentDidMount() {
+    // here we set up standard canvas methods
+    const elem: HTMLCanvasElement = this.canvasRef.current
 
-      console.log(`x: ${x}, y: ${y}`)
-      if (this.props.socket) {
-        // TODO: convert this to game coordinates
-        this.props.socket.emit('set_spawn_location', JSON.stringify({
-          data: { x, y }
-        }))
+    // render(clock$, elem)
+
+    if (this.props.socket) {
+      const { map$, state$ } = getState(this.props.socket, elem)
+      if (elem) {
+        clickCoordinates$(elem)
+          .combineLatest(map$)
+          .subscribe(([pos, map]) => {
+            const bounds = getMapArea(map, elem.width, elem.height)
+
+            if (pos.x < bounds.width && pos.y < bounds.height) {
+              const x = convertDim(pos.x, 0, bounds.width, 0, map.width)
+              const y = convertDim(pos.y, 0, bounds.height, 0, map.height)
+              this.props.socket && this.props.socket.emit('set_spawn', { x, y })
+            }
+          })
       }
+
+      state$.subscribe(render(elem))
     }
-  }
-
-  doubleClickHandler = (ev: MouseEvent) => {
-    this.canvasRef && fscreen.requestFullscreen(this.canvasRef)
-      // this.canvasRef && this.canvasRef.requestPointerLock()
-  }
-
-  setRef = (elem: HTMLCanvasElement | null) => {
-    this.canvasRef = elem
-    this.canvasRef && this.canvasRef.addEventListener('click', this.clickHandler, false)
-    // TODO: this fires the click event. Change this to a key binding
-    this.canvasRef && this.canvasRef.addEventListener('dblclick', this.doubleClickHandler, false)
   }
 
   render() {
     const { width, height } = this.props
     return (
-      <div style={{height: '100%'}}>
-        <canvas ref={this.setRef} className={canvasStyle} width={width} height={height} />
-      </div>
+      <canvas ref={this.canvasRef} className={canvasStyle} width={width} height={height} />
     )
   }
 }

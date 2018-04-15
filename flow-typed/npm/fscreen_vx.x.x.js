@@ -14,7 +14,7 @@
  */
 
 declare module 'fscreen' {
-  declare module.exports: {
+  declare export default {
     fullscreenEnabled: boolean,
     fullscreenElement: HTMLElement,
     requestFullscreen: (elem: HTMLElement) => void,
