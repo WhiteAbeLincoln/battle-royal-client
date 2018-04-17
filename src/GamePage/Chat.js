@@ -20,7 +20,10 @@ const groupStyle = css`
 `
 
 type ChatBarState = {
-  message: string
+  message: string,
+  history: string[],
+  position: number,
+  temp: string
 }
 
 type ChatBarProps = {
@@ -28,9 +31,14 @@ type ChatBarProps = {
 }
 
 export class ChatBar extends Component<ChatBarProps, ChatBarState> {
-  state = {
+  state: ChatBarState = {
     message: ''
+  , history: []
+  , position: 0
+  , temp: ''
   }
+
+  inputRef = (React: any).createRef()
 
   sendMessage = (message: string) => {
     this.props.onSubmit(message)
@@ -46,7 +54,39 @@ export class ChatBar extends Component<ChatBarProps, ChatBarState> {
     ev.stopPropagation()
     if (this.state.message !== '') {
       this.sendMessage(this.state.message)
+      this.setState(s => ({ history: [...s.history, this.state.message], position: s.history.length + 1, temp: '' }))
     }
+  }
+
+  componentDidMount() {
+    const elem: HTMLInputElement = this.inputRef.current
+    elem.addEventListener('keypress', (e: KeyboardEvent) => {
+      switch (e.key) {
+        case 'ArrowUp':
+          this.setState(s => {
+            let position = s.position - 1
+            if (position < 0) position = 0
+            const temp = s.position === this.state.history.length ? s.message : s.temp
+            const value = this.state.history[position] || temp
+            return { position
+                   , message: value
+                   , temp }
+          })
+          break
+        case 'ArrowDown':
+          this.setState(s => {
+            let position = s.position + 1
+            if (position > this.state.history.length) position = this.state.history.length
+            const value = position === this.state.history.length
+                        ? this.state.temp
+                        : this.state.history[position]
+            return { position
+                   , message: value }
+          })
+          break
+        default: // do nothing
+      }
+    })
   }
 
   render() {
@@ -54,6 +94,7 @@ export class ChatBar extends Component<ChatBarProps, ChatBarState> {
       <form onSubmit={this.handleSubmit}>
         <InputGroup className={groupStyle}>
           <input
+            ref={this.inputRef}
             className={inputGroupField}
             type="text"
             value={this.state.message}
@@ -127,12 +168,17 @@ type Props = {
 
 type State = {
   messages: ChatMessage[],
-  mutes: Set<string>
+  mutes: Set<string>,
+  lastRecieved?: ChatMessage
 }
 
+type CommandResponse = { local?: string, remote?: { key: string, data?: any } }
+
 class Chat extends Component<Props, State> {
-  state = { messages: []
-          , mutes: (new Set(): Set<string>) }
+  state: State = {
+    messages: []
+  , mutes: (new Set(): Set<string>)
+  }
 
   getCommand = (msg: string) => {
     if (msg.charAt(0) !== '\\') return null
@@ -140,11 +186,15 @@ class Chat extends Component<Props, State> {
     return tokenize(msg.substr(1))
   }
 
-  handleCommand = (command: string[]) => {
+  handleCommand = (command: string[]): CommandResponse => {
     const commandHelp = (
       { 'help': '\tUsage: \\help [command]\n\tDisplays help for commands'
       , 'start': '\tUsage: \\start\n\tVote to start the game'
       , 'kick': '\tUsage: \\kick <gamertag>\n\tVote to kick a player'
+      , 'startpoll': '\tUsage: \\startpoll <name> [description] [responses]\n\tStart a poll. Responses is a space separated string of valid responses. Defaults to "yes no"'
+      , 'stoppoll': '\tUsage: \\stoppoll <name>\n\tStops a poll. Only the user who started the ballot can stop it'
+      , 'poll': '\tUsage: \\poll [name] \n\tList open polls. If name is specified, shows current responses for a single poll'
+      , 'vote': '\tUsage: \\vote <poll> <response>\n\tSubmit vote for poll'
       , 'mute': '\tUsage: \\mute <gamertag>\n\tMute a player'
       , 'unmute': '\tUsage: \\unmute <gamertag>\n\tUnmute a player'
       })
@@ -164,17 +214,34 @@ class Chat extends Component<Props, State> {
         return { local: `Voted to start game`, remote: { key: 'vote_start' } }
       }
       case 'kick': {
-        if (command.length !== 2) return { local: `invalid parameters` }
+        if (command.length !== 2) return { local: 'invalid parameters\n' + commandHelp[command[0]] }
         return { local: `Voted to kick ${command[1]}`, remote: { key: 'vote_kick', data: command[1] } }
       }
       case 'mute': {
-        if (command.length !== 2) return { local: `invalid parameters` }
+        if (command.length !== 2) return { local: 'invalid parameters\n' + commandHelp[command[0]] }
         this.setState((s, p) => ({ mutes: s.mutes.add(command[1]) }))
 
         return { local: `Muted ${command[1]}` }
       }
+      case 'startpoll': {
+        if (command.length < 2 || command.length > 4) return { local: 'invalid parameters\n' + commandHelp[command[0]] }
+        const responses = command[3] && command[3].split(' ')
+        return { remote: { key: 'poll_action', data: { kind: 'create', name: command[1], description: command[2], responses } } }
+      }
+      case 'stoppoll': {
+        if (command.length !== 2) return { local: 'invalid parameters\n' + commandHelp[command[0]] }
+        return { remote: { key: 'poll_action', data: { kind: 'close', name: command[1] } } }
+      }
+      case 'poll': {
+        if (command.length > 2) return { local: `invalid parameters` }
+        return { remote: { key: 'poll_action', data: { kind: 'query', name: command[1] } } }
+      }
+      case 'vote': {
+        if (command.length !== 3) return { local: 'invalid parameters\n' + commandHelp[command[0]] }
+        return { remote: { key: 'vote', data: { poll: command[1], response: command[2] } } }
+      }
       case 'unmute': {
-        if (command.length !== 2) return { local: `invalid parameters` }
+        if (command.length !== 2) return { local: 'invalid parameters\n' + commandHelp[command[0]] }
         this.setState((s, p) => {
           s.mutes.delete(command[1])
           return { mutes: s.mutes }
@@ -195,7 +262,8 @@ class Chat extends Component<Props, State> {
     if (command) {
       const msg = this.handleCommand(command)
       if (msg.local) {
-        this.setState((s, p) => ({ messages: [...s.messages, { data: msg.local }] }))
+        const data = msg.local
+        this.setState((s, p) => ({ messages: [...s.messages, { data }] }))
       }
       if (msg.remote) {
         this.props.onSubmit(msg.remote)
@@ -207,11 +275,11 @@ class Chat extends Component<Props, State> {
 
   componentWillReceiveProps(nextProps: Props) {
     const newMessage = nextProps.message
-    const lastMessage = this.state.messages[this.state.messages.length - 1]
+    const lastMessage = this.state.lastRecieved
 
     if (newMessage && newMessage !== lastMessage) {
       if (!(newMessage.from && this.state.mutes.has(newMessage.from))) {
-        this.setState((s) => ({ messages: [...s.messages, newMessage] }))
+        this.setState((s) => ({ messages: [...s.messages, newMessage], lastRecieved: newMessage }))
       }
     }
   }

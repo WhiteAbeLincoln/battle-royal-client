@@ -41,7 +41,6 @@ const drawRectangle = (r: Rectangle, width: number, height: number) =>
   const convert = convertGame({ x: mapDim.width, y: mapDim.height })({ x: 0, y: 0 }, { x: width, y: height })
   const { x: x1, y: y1 } = convert(r.point1)
   const { x: x2, y: y2 } = convert(r.point2)
-  console.log(`${x1}, ${y1} -- ${x2}, ${y2}`)
 
   ctx.fillStyle = r.color
   ctx.fillRect(x1, y1, x2 - x1, y2 - y1)
