@@ -1,12 +1,13 @@
 // @flow
 import { animation$, updateMap$, newSpawn$, startGame$ } from './Actions'
-import type { Socket } from 'socket.io-client'
-import type { State } from './State'
+import * as io from 'socket.io-client'
+import { State } from './State'
 import fscreen from 'fscreen'
 import 'rxjs/add/operator/bufferCount'
 import 'rxjs/add/operator/withLatestFrom'
 import 'rxjs/add/operator/startWith'
 import 'rxjs/add/operator/scan'
+import { Observable } from 'rxjs'
 
 /**
   A observer for time elapsed between animation frames
@@ -15,7 +16,7 @@ export const clock$ = animation$
                         .bufferCount(2, 1)
                         .map(([prev, current]) => current - prev)
 
-export const getState = (socket: Socket, canvas: HTMLCanvasElement) => {
+export const getState = (socket: SocketIOClient.Socket, canvas: HTMLCanvasElement) => {
   const map$ = updateMap$(socket)
   const spawns$ = newSpawn$(socket)
                   .scan((acc, curr) => ({ ...acc, ...curr }), {})
@@ -30,15 +31,22 @@ export const getState = (socket: Socket, canvas: HTMLCanvasElement) => {
   const start$ = startGame$(socket).startWith(false)
 
   start$.subscribe(started => {
-    if (started && !fscreen.fullscreenEnabled) {
-      fscreen.requestFullscreen(canvas)
+    console.log('Game start: ', started)
+    if (started) {
+      // fscreen.requestFullscreen(canvas)
     }
   })
 
-  const state$: rxjs$Observable<State> = clock$.withLatestFrom(map$, spawns$, (elapsed, map, spawns) => ({
+  const ratio = 16 / 9
+  // Window has 16:9 ratio and is 15 meters wide
+  const window = { width: 15, height: 15 * (1 / ratio) }
+
+  const state$: Observable<State> = clock$.withLatestFrom(map$, spawns$, start$, (elapsed, map, spawns, started) => ({
       elapsedTime: elapsed
     , spawns
     , map
+    , started
+    , window
   }))
 
   return { map$

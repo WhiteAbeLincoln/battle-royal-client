@@ -1,6 +1,5 @@
-// @flow
-import type { Socket } from 'socket.io-client'
-import type { Map, Pos } from './State'
+import * as io from 'socket.io-client'
+import { Map, Vec2 } from './State'
 import { Observable } from 'rxjs/Observable'
 import 'rxjs/add/operator/map'
 import 'rxjs/add/operator/combineLatest'
@@ -9,21 +8,21 @@ import 'rxjs/add/observable/fromEvent'
 const MessageKeys = { UPDATE_MAP: 'update_map'
                     , NEW_SPAWN: 'new_spawn'
                     , START_GAME: 'start_game'
-                    , COUNTDOWN: 'start_countdown' }
+                    }
 
-function createSocketObs(key: string) {
-return (socket: Socket): rxjs$Observable<*> =>
-  Observable.create(sub => {
-    socket.on(key, res => {
+function createSocketObs<T>(key: string) {
+return (socket: SocketIOClient.Socket): Observable<T> =>
+  new Observable(sub => {
+    socket.on(key, (res: any) => {
       sub.next(res)
     })
   })
 }
 
-export const animation$ = Observable.create(sub => {
+export const animation$ = new Observable<number>(sub => {
   let stop = false
 
-  const func = (time) => {
+  const func = (time: number) => {
     sub.next(time)
     if (!stop) requestAnimationFrame(func)
   }
@@ -33,14 +32,13 @@ export const animation$ = Observable.create(sub => {
   return () => { stop = true }
 })
 
-export const updateMap$: Socket => rxjs$Observable<Map> = createSocketObs(MessageKeys.UPDATE_MAP)
-export const newSpawn$: Socket => rxjs$Observable<{ [name: string]: Pos }> = createSocketObs(MessageKeys.NEW_SPAWN)
-export const startGame$: Socket => rxjs$Observable<boolean> = createSocketObs(MessageKeys.START_GAME)
-export const startCountdown$: Socket => rxjs$Observable<boolean> = createSocketObs(MessageKeys.COUNTDOWN)
+export const updateMap$ = createSocketObs<Map>(MessageKeys.UPDATE_MAP)
+export const newSpawn$ = createSocketObs<{ [name: string]: Vec2 }>(MessageKeys.NEW_SPAWN)
+export const startGame$ = createSocketObs<boolean>(MessageKeys.START_GAME)
 
 export const keypress$ = (elem: HTMLElement) =>
-  Observable.create(sub => {
-    const map: * = {}
+  new Observable<string[]>(sub => {
+    const map: Record<string, boolean> = {}
 
     const keydown = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return
@@ -64,7 +62,7 @@ export const keypress$ = (elem: HTMLElement) =>
   })
 
 export const click$ = (elem: HTMLElement) =>
-    Observable.fromEvent(elem, 'click')
+    Observable.fromEvent<MouseEvent>(elem, 'click')
 
 export const clickCoordinates$ = (canvas: HTMLCanvasElement) =>
                         click$(canvas).map(e => {

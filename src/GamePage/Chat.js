@@ -189,7 +189,8 @@ class Chat extends Component<Props, State> {
   handleCommand = (command: string[]): CommandResponse => {
     const commandHelp = (
       { 'help': '\tUsage: \\help [command]\n\tDisplays help for commands'
-      , 'start': '\tUsage: \\start\n\tVote to start the game'
+      , 'ready': '\tUsage: \\ready\n\tVote to start the game'
+      , 'unready': '\tUsage: \\ready\n\tRemove vote to start the game'
       , 'kick': '\tUsage: \\kick <gamertag>\n\tVote to kick a player'
       , 'startpoll': '\tUsage: \\startpoll <name> [description] [responses]\n\tStart a poll. Responses is a space separated string of valid responses. Defaults to "yes no"'
       , 'stoppoll': '\tUsage: \\stoppoll <name>\n\tStops a poll. Only the user who started the ballot can stop it'
@@ -210,8 +211,11 @@ class Chat extends Component<Props, State> {
 
         return { local: message }
       }
-      case 'start': {
-        return { local: `Voted to start game`, remote: { key: 'vote_start' } }
+      case 'ready': {
+        return { local: `Voted to start game`, remote: { key: 'vote_start', data: true } }
+      }
+      case 'unready': {
+        return { local: `Removed vote to start game`, remote: { key: 'vote_start', data: false } }
       }
       case 'kick': {
         if (command.length !== 2) return { local: 'invalid parameters\n' + commandHelp[command[0]] }

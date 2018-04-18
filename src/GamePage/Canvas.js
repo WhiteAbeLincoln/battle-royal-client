@@ -1,11 +1,7 @@
-// @flow
 import React, { Component } from 'react'
 import { css } from 'emotion'
 import type { Socket } from 'socket.io-client'
-import fscreen from 'fscreen'
-import { render, convertDim, getMapArea } from '../Game/Render'
-import { getState } from '../Game/Game'
-import { clickCoordinates$ } from '../Game/Actions'
+import { Game } from '../Game'
 
 const canvasStyle = css`
   background-color: cornflowerblue;
@@ -24,25 +20,9 @@ export class Canvas extends Component<Props> {
     // here we set up standard canvas methods
     const elem: HTMLCanvasElement = this.canvasRef.current
 
-    // render(clock$, elem)
-
     if (this.props.socket) {
-      const { map$, state$ } = getState(this.props.socket, elem)
-      if (elem) {
-        clickCoordinates$(elem)
-          .combineLatest(map$)
-          .subscribe(([pos, map]) => {
-            const bounds = getMapArea(map, elem.width, elem.height)
-
-            if (pos.x < bounds.width && pos.y < bounds.height) {
-              const x = convertDim(pos.x, 0, bounds.width, 0, map.width)
-              const y = convertDim(pos.y, 0, bounds.height, 0, map.height)
-              this.props.socket && this.props.socket.emit('set_spawn', { x, y })
-            }
-          })
-      }
-
-      state$.subscribe(render(elem))
+      const game = new Game(elem, this.props.socket)
+      game.start()
     }
   }
 

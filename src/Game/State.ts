@@ -1,5 +1,3 @@
-// @flow
-
 /*
 Ways to reason about our state over time:
 1. The state is an object which gets modified at points in time
@@ -15,7 +13,7 @@ export type Action = 'FIRE'
                    | 'MOVE_FORWARD'
                    | 'MOVE_BACKWARD'
 
-export type Pos = {
+export type Vec2 = {
   x: number,
   y: number
 }
@@ -23,8 +21,8 @@ export type Pos = {
 export interface Rectangle {
   kind: 'rectangle',
   color: string,
-  point1: Pos,
-  point2: Pos
+  point1: Vec2,
+  point2: Vec2
 }
 
 export interface Circle {
@@ -34,7 +32,7 @@ export interface Circle {
 export interface Polygon {
   kind: 'polygon',
   color: string,
-  edges: Pos[]
+  edges: Vec2[]
 }
 
 export type Object = Polygon | Rectangle | Circle
@@ -57,6 +55,8 @@ export type User = {
 
 export type State = {
   map: Map,
-  spawns: Pos[],
-  elapsedTime: number
+  spawns: Vec2[],
+  elapsedTime: number,
+  started: boolean,
+  window: { width: number, height: number }
 }

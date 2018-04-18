@@ -1,4 +1,4 @@
 {
-  "javascript.validate.enable": false,
   "flow.showStatus": true,
+  "javascript.validate.enable": false
 }
