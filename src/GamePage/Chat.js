@@ -60,6 +60,7 @@ export class ChatBar extends Component<ChatBarProps, ChatBarState> {
 
   componentDidMount() {
     const elem: HTMLInputElement = this.inputRef.current
+    elem.focus()
     elem.addEventListener('keypress', (e: KeyboardEvent) => {
       switch (e.key) {
         case 'ArrowUp':
@@ -94,6 +95,7 @@ export class ChatBar extends Component<ChatBarProps, ChatBarState> {
       <form onSubmit={this.handleSubmit}>
         <InputGroup className={groupStyle}>
           <input
+            id="chatBar"
             ref={this.inputRef}
             className={inputGroupField}
             type="text"
@@ -154,7 +156,7 @@ class ChatList extends Component<ChatListProps> {
       {messages.map((m, i) => (
         m.from
         ? (<pre style={{margin: 0}} key={i}><Link to={`/user/${m.from}`}>{m.from}</Link>: {m.data}</pre>)
-        : (<pre style={{margin: 0}} key={i}>{m.data}</pre>)
+        : (<pre style={{margin: 0, color: '#666'}} key={i}>{m.data}</pre>)
       ))}
     </div>)
   }

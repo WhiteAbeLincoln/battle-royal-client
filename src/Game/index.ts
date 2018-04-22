@@ -1,27 +1,54 @@
-import { getState } from "./Game";
-import { clickCoordinates$ } from "./Actions";
-import { getMapArea, convertDim, render } from "./Render";
+import { getState } from './Game'
+import { clickCoordinates$ } from './Actions'
+import { getMapArea, convert, render } from './Render'
+import { Observable } from 'rxjs/Observable'
+import fscreen from 'fscreen'
 
-export class Game {
-  constructor (private canvas: HTMLCanvasElement, private socket: SocketIOClient.Socket) { }
+/**
+ * Starts a game and returns an observable which emits when the menu key is hit
+ */
+export const game = (canvas: HTMLCanvasElement, socket: SocketIOClient.Socket, menuOpen$: Observable<boolean>) => () => {
+  const { map$, state$, start$, input$, uiInput$, gameInput$ } = getState(socket, canvas, menuOpen$)
+  // tslint:disable:no-expression-statement
 
-  start() {
-      const { map$, state$ } = getState(this.socket, this.canvas)
-      clickCoordinates$(this.canvas)
-        .combineLatest(map$)
-        .subscribe(([pos, map]) => {
-          const bounds = getMapArea(map, this.canvas.width, this.canvas.height)
+  clickCoordinates$(canvas)
+    .combineLatest(map$, start$)
+    .subscribe(([pos, map, started]) => {
+      const bounds = getMapArea(map, canvas.width, canvas.height)
 
-          if (pos.x <= bounds.width + bounds.x
-            && pos.x >= bounds.x
-            && pos.y <= bounds.height + bounds.y 
-            && pos.y >= bounds.y) {
-            const x = convertDim(0, bounds.width)(0, map.width)(pos.x - bounds.x)
-            const y = convertDim(0, bounds.height)(0, map.height)(pos.y - bounds.y)
-            this.socket && this.socket.emit('set_spawn', { x, y })
-          }
-        })
+      // tslint:disable-next-line:no-if-statement
+      if (pos.x <= bounds.width + bounds.x
+        && pos.x >= bounds.x
+        && pos.y <= bounds.height + bounds.y
+        && pos.y >= bounds.y
+        && !started) {
+        const x = convert(0, bounds.width)(0, map.width)(pos.x - bounds.x)
+        const y = convert(0, bounds.height)(0, map.height)(pos.y - bounds.y)
+        socket.emit('set_spawn', { x, y })
+      }
+    })
 
-      state$.subscribe(render(this.canvas))
-  }
+  uiInput$.subscribe(f => {
+    // tslint:disable:no-if-statement
+    // tslint:disable:no-object-mutation
+    if (f === 'Fullscreen') {
+      if (!fscreen.fullscreenElement) {
+        fscreen.requestFullscreen(canvas)
+        setTimeout(() => {
+          canvas.width = window.innerWidth
+          canvas.height = window.innerHeight
+        }, 50)
+      } else {
+        fscreen.exitFullscreen()
+      }
+    }
+    // tslint:enable:no-if-statement
+    // tslint:enable:no-object-mutation
+  })
+
+  gameInput$.subscribe(v => socket.emit('user_action', v))
+
+  state$.subscribe(render(canvas))
+
+  return uiInput$.filter((i): i is 'Menu' => i === 'Menu')
 }

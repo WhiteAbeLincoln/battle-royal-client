@@ -6,12 +6,12 @@ declare module 'fscreen' {
     requestFullscreenFunction: (elem: HTMLElement) => void,
     exitFullscreen: () => void,
     onfullscreenchange: (ev: Event) => void,
-    addEventListener: (name: 'fullscreenchange', ev: Event, options: {}) => void,
-    removeEventListener: (name: 'fullscreenchange', ev: Event, options: {}) => void,
+    addEventListener: (name: 'fullscreenchange' | 'fullscreenerror', ev: Event, options: {}) => void,
+    removeEventListener: (name: 'fullscreenchange' | 'fullscreenerror', ev: Event, options: {}) => void,
     onfullscreenerror: (ev: Event) => void,
-    addEventListener: (name: 'fullscreenerror', ev: Event, options: {}) => void,
-    removeEventListener: (name: 'fullscreenerror', ev: Event, options: {}) => void,
-  };
+  }
 
-  export default Fscreen
+  const fscreen: Fscreen
+
+  export default fscreen
 }

@@ -1,16 +1,21 @@
 import * as io from 'socket.io-client'
-import { Map, Vec2 } from './State'
+import { WorldMap } from './models/Map'
+import { Vec2 } from './models/State'
 import { Observable } from 'rxjs/Observable'
 import 'rxjs/add/operator/map'
+import 'rxjs/add/operator/merge'
+import 'rxjs/add/operator/startWith'
 import 'rxjs/add/operator/combineLatest'
 import 'rxjs/add/observable/fromEvent'
+import 'rxjs/add/observable/of'
 
 const MessageKeys = { UPDATE_MAP: 'update_map'
                     , NEW_SPAWN: 'new_spawn'
                     , START_GAME: 'start_game'
                     }
 
-function createSocketObs<T>(key: string) {
+// tslint:disable:no-expression-statement
+function createSocketObs<T>(key: string): ((s: SocketIOClient.Socket) => Observable<T>) {
 return (socket: SocketIOClient.Socket): Observable<T> =>
   new Observable(sub => {
     socket.on(key, (res: any) => {
@@ -20,10 +25,12 @@ return (socket: SocketIOClient.Socket): Observable<T> =>
 }
 
 export const animation$ = new Observable<number>(sub => {
+  // tslint:disable-next-line:no-let
   let stop = false
 
   const func = (time: number) => {
     sub.next(time)
+    // tslint:disable-next-line:no-if-statement
     if (!stop) requestAnimationFrame(func)
   }
 
@@ -31,17 +38,21 @@ export const animation$ = new Observable<number>(sub => {
 
   return () => { stop = true }
 })
+// tslint:enable:no-expression-statement
 
-export const updateMap$ = createSocketObs<Map>(MessageKeys.UPDATE_MAP)
-export const newSpawn$ = createSocketObs<{ [name: string]: Vec2 }>(MessageKeys.NEW_SPAWN)
+export const updateMap$ = createSocketObs<WorldMap>(MessageKeys.UPDATE_MAP)
+export const newSpawn$ = createSocketObs<{ readonly [name: string]: Vec2 }>(MessageKeys.NEW_SPAWN)
 export const startGame$ = createSocketObs<boolean>(MessageKeys.START_GAME)
 
 export const keypress$ = (elem: HTMLElement) =>
-  new Observable<string[]>(sub => {
+  new Observable<ReadonlyArray<string>>(sub => {
     const map: Record<string, boolean> = {}
 
     const keydown = (e: KeyboardEvent) => {
+      // tslint:disable-next-line:no-if-statement
       if (e.defaultPrevented) return
+      // tslint:disable:no-expression-statement
+      // tslint:disable:no-object-mutation
       map[e.key] = true
       const pressedKeys = Object.keys(map).filter(k => map[k])
 
@@ -59,7 +70,81 @@ export const keypress$ = (elem: HTMLElement) =>
       elem.removeEventListener('keydown', keydown, true)
       elem.removeEventListener('keyup', keyup, true)
     }
+    // tslint:enable:no-expression-statement
+    // tslint:enable:no-object-mutation
   })
+
+const isGameKey = (gameKeys: ReadonlyArray<string>) => (key: string) => {
+  return gameKeys.includes(key)
+}
+
+export type GameInput =
+          | 'TurnLeft'
+          | 'TurnRight'
+          | 'Forward'
+          | 'Back'
+          | 'Fire'
+
+export type UIInput =
+          | 'Fullscreen'
+          | 'Menu'
+          | 'Map'
+
+export type Input = GameInput | UIInput
+
+export type KeyMapping = {
+  readonly [key: string]: Input
+}
+
+export const getKeyMappings = (): KeyMapping => {
+  // we call this on every keypress. Maybe meomize?
+  // or turn into observable
+  const keys = localStorage.getItem('key_bindings')
+  const defaultKeys: KeyMapping = {
+    'a': 'TurnLeft'
+  , 'ArrowLeft': 'TurnLeft'
+
+  , 'd': 'TurnRight'
+  , 'ArrowRight': 'TurnRight'
+
+  , 'w': 'Forward'
+  , 'ArrowUp': 'Forward'
+
+  , 's': 'Back'
+  , 'ArrowDown': 'Back'
+
+  , ' ': 'Fire'
+
+  , 'f': 'Fullscreen'
+  , 'Escape': 'Menu'
+  , 'm': 'Map'
+  }
+
+  try {
+    return JSON.parse(keys || 'null') || defaultKeys
+  } catch {
+    return defaultKeys
+  }
+}
+
+export const chatFocused$ = (element: HTMLInputElement) => {
+  const chatEnter = Observable.fromEvent(element, 'focus')
+                              .map(e => true)
+  const chatLeave = Observable.fromEvent(element, 'blur')
+                              .map(e => false)
+  return chatEnter.merge(chatLeave).startWith(true)
+}
+
+export const input$ = (elem: HTMLElement) =>
+  keypress$(elem)
+    .map(keys => {
+      const mappings = getKeyMappings()
+
+      const gameKeys = keys.filter(isGameKey(Object.keys(mappings)))
+      return gameKeys.map(k => mappings[k])
+    })
+    .filter(k => k.length > 0)
+    .flatMap(l => Observable.of(...l))
 
 export const click$ = (elem: HTMLElement) =>
     Observable.fromEvent<MouseEvent>(elem, 'click')
