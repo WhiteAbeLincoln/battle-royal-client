@@ -70,6 +70,26 @@ const renderSpawn = (spawn: Vec2) =>
   ctx.arc(x, y, 5, 0, 2 * Math.PI)
   ctx.fill()
 }
+const renderPosition = (position: Vec2) =>
+                    (drawArea: Area) =>
+                    (viewport: Dimension) =>
+                    (ctx: CanvasRenderingContext2D) => {
+  const convert = convertDimAreaPoint(viewport)(drawArea)
+
+  const { x, y } = convert(position)
+
+  ctx.fillStyle = 'black'
+  const leftCorner = ({ x: x - 5 , y: y + 5 })
+  const rightCorner = ({ x: x + 5, y: y + 5 })
+  const topCorner = ({ x: x + 5, y: y - 5 })
+
+  ctx.beginPath()
+  ctx.moveTo(leftCorner.x, leftCorner.y)
+  ctx.lineTo(rightCorner.x, rightCorner.y)
+  ctx.lineTo(topCorner.x, topCorner.y)
+  // ctx.arc(x, y, 5, 0, 2 * Math.PI)
+  ctx.fill()
+}
 
 export const render = (canvas: HTMLCanvasElement) => (state: State) => {
   const ctx = canvas.getContext('2d')
@@ -88,7 +108,11 @@ export const render = (canvas: HTMLCanvasElement) => (state: State) => {
     ? [ WMap.render(state.map)(mapArea)
       , ...state.spawns.map(s => renderSpawn(s)(mapArea)(state.map))
       ]
-    : [ renderViewport(state)(viewArea)(viewArea) ]
+    : [ WMap.render(state.map)(mapArea),
+      renderPosition(state.player.position)(mapArea)(state.map)
+      , ...state.opponents.map(s => renderPosition(s.position)(mapArea)(state.map))
+      , ...state.projectiles.map(s => renderPosition(s.position)(mapArea)(state.map))
+    ] // renderViewport(state)(viewArea)(viewArea) ]
 
   render.forEach(f => f(ctx))
 }

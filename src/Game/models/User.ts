@@ -8,7 +8,7 @@ import { withContext } from '../Canvas'
 import { convertDimAreaPoint } from '../Render'
 
 const ROTATE_ANGLE = Math.PI / 12
-const MOVE_DIST = 0.05
+const MOVE_DIST = 5
 
 type InventoryItem = Weapon
 
