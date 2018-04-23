@@ -68,6 +68,9 @@ export interface Sniper extends WeaponBase {
 }
 
 export type Weapon = Gun | RocketLauncher | Sniper
+export type WeaponKind = Weapon['kind']
+
+export const weaponKinds: ReadonlyArray<WeaponKind> = [ 'gun', 'rocket_launcher', 'sniper' ]
 
 const projectile = (weapon: Weapon, user: User) => ({
     direction: { ...user.direction }

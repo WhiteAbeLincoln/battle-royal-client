@@ -1,5 +1,6 @@
 import { Rectangle } from './models/World'
 import { State, Dimension, Area, Vec2 } from './models/State'
+import { render as renderViewport } from './models/Viewport'
 import * as WMap from './models/Map'
 
 // tslint:disable:no-expression-statement
@@ -15,13 +16,6 @@ export const convert = (srcMin: number,
                                          / (srcMax - srcMin)
                                          * (resMax - resMin)
                                          + resMin
-
-const convertPoint = (smin: Vec2, smax: Vec2) => (dmin: Vec2, dmax: Vec2) => (point: Vec2) => {
-  const x = convert(smin.x, smax.x)(dmin.x, dmax.x)(point.x)
-  const y = convert(smin.y, smax.y)(dmin.y, dmax.y)(point.y)
-
-  return { x, y }
-}
 
 export const convertDimAreaPoint = (dim: Dimension) => (area: Area) => (point: Vec2) => {
   const convertX = convert(0, dim.width)(0, area.width)
@@ -58,12 +52,9 @@ const fitArea = (src: Dimension, dest: Dimension, center = true) => {
       }
 }
 
-export const getMapArea = (m: WMap.WorldMap, width: number, height: number) => {
-  const srcMin = { x: 0, y: 0 }
-  const srcMax = { x: m.width, y: m.height }
-  const destMin = { x: 0, y: 0 }
-  const dim = fitArea(m, { width, height })(srcMax)
-  return dim
+export const getArea = (viewport: Dimension, width: number, height: number) => {
+  const srcMax = { x: viewport.width, y: viewport.height }
+  return fitArea(viewport, { width, height })(srcMax)
 }
 
 const renderSpawn = (spawn: Vec2) =>
@@ -90,11 +81,14 @@ export const render = (canvas: HTMLCanvasElement) => (state: State) => {
 
   ctx.clearRect(0, 0, width, height)
 
+  const mapArea = getArea(state.map, width, height)
+  const viewArea = getArea(state.viewport, width, height)
+
   const render = (!state.started)
-    ? [ WMap.render(state.map)(getMapArea(state.map, width, height))
-      , ...state.spawns.map(s => renderSpawn(s)(getMapArea(state.map, width, height))(state.map))
+    ? [ WMap.render(state.map)(mapArea)
+      , ...state.spawns.map(s => renderSpawn(s)(mapArea)(state.map))
       ]
-    : []
+    : [ renderViewport(state)(viewArea)(viewArea) ]
 
   render.forEach(f => f(ctx))
 }

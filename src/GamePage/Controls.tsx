@@ -73,7 +73,7 @@ export class Controls extends React.Component<{}, ControlsState> {
         [key as any]: values
       }, () => {
         const stringified = JSON.stringify(stateToMapping(this.state))
-        localStorage.setItem('key_bindings', stringified)
+        localStorage.setItem('br-key_bindings', stringified)
       })
 
       return Promise.resolve(values)

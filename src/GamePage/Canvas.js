@@ -4,7 +4,8 @@ import { css } from 'emotion'
 import type { Socket } from 'socket.io-client'
 import { game } from '../Game'
 import { Menu } from './Menu'
-import { BehaviorSubject } from 'rxjs'
+import { BehaviorSubject } from 'rxjs/BehaviorSubject'
+import 'rxjs/add/operator/distinctUntilChanged'
 
 const canvasStyle = css`
   background-color: slategrey;

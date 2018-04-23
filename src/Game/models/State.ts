@@ -1,5 +1,7 @@
 import { WorldObject } from './World'
 import { WorldMap } from './Map'
+import { User } from './User'
+import { Projectile } from './Weapon'
 
 export type Vec2 = {
   readonly x: number,
@@ -27,4 +29,7 @@ export type State = {
   readonly elapsedTime: number,
   readonly started: boolean,
   readonly viewport: { readonly width: number, readonly height: number }
+  readonly player: User
+  readonly opponents: ReadonlyArray<User>
+  readonly projectiles: ReadonlyArray<Projectile>
 }

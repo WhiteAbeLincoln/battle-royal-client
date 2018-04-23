@@ -3,6 +3,7 @@
     "extends": ["tslint-config-standard", "tslint-immutable"],
     "jsRules": {},
     "rules": {
+        "max-line-length": [true, 120],
         "member-ordering": false,
         "ter-indent": false,
         "space-before-function-paren": [true, {

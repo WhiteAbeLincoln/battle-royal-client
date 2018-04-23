@@ -6,12 +6,18 @@ import 'rxjs/add/operator/map'
 import 'rxjs/add/operator/merge'
 import 'rxjs/add/operator/startWith'
 import 'rxjs/add/operator/combineLatest'
+import { filter } from 'rxjs/operators'
+import 'rxjs/add/operator/mergeMap'
 import 'rxjs/add/observable/fromEvent'
 import 'rxjs/add/observable/of'
+import { User } from './models/User'
+import { SequenceItem } from './Game'
+import { Projectile } from './models/Weapon'
 
 const MessageKeys = { UPDATE_MAP: 'update_map'
                     , NEW_SPAWN: 'new_spawn'
                     , START_GAME: 'start_game'
+                    , UPDATE: 'update_state'
                     }
 
 // tslint:disable:no-expression-statement
@@ -40,9 +46,27 @@ export const animation$ = new Observable<number>(sub => {
 })
 // tslint:enable:no-expression-statement
 
+type StateUpdateData = User | ReadonlyArray<Projectile> | ReadonlyArray<User>
+
 export const updateMap$ = createSocketObs<WorldMap>(MessageKeys.UPDATE_MAP)
 export const newSpawn$ = createSocketObs<{ readonly [name: string]: Vec2 }>(MessageKeys.NEW_SPAWN)
 export const startGame$ = createSocketObs<boolean>(MessageKeys.START_GAME)
+export const updateState$ = createSocketObs<SequenceItem<StateUpdateData>>(MessageKeys.UPDATE)
+
+export const filterPlayer = filter(
+  (u: SequenceItem<StateUpdateData>): u is SequenceItem<User> =>
+    !Array.isArray(u.data) && (u.data as Projectile | User).kind === 'user'
+)
+
+export const filterOpponents = filter(
+  (u: SequenceItem<StateUpdateData>): u is SequenceItem<ReadonlyArray<User>> =>
+    Array.isArray(u.data) && u.data[0] && (u.data[0] as Projectile | User).kind === 'user'
+)
+
+export const filterProjectiles = filter(
+  (u: SequenceItem<StateUpdateData>): u is SequenceItem<ReadonlyArray<Projectile>> =>
+    Array.isArray(u.data) && u.data[0] && (u.data[0] as Projectile | User).kind !== 'user'
+)
 
 export const keypress$ = (elem: HTMLElement) =>
   new Observable<ReadonlyArray<string>>(sub => {
@@ -99,7 +123,7 @@ export type KeyMapping = {
 export const getKeyMappings = (): KeyMapping => {
   // we call this on every keypress. Maybe meomize?
   // or turn into observable
-  const keys = localStorage.getItem('key_bindings')
+  const keys = localStorage.getItem('br-key_bindings')
   const defaultKeys: KeyMapping = {
     'a': 'TurnLeft'
   , 'ArrowLeft': 'TurnLeft'
@@ -144,7 +168,10 @@ export const input$ = (elem: HTMLElement) =>
       return gameKeys.map(k => mappings[k])
     })
     .filter(k => k.length > 0)
-    .flatMap(l => Observable.of(...l))
+    .mergeMap(l => Observable.of(...l))
+
+export const filterUIInput = filter((v: Input): v is UIInput => v === 'Menu' || v === 'Fullscreen' || v === 'Map')
+export const filterGameInput = filter((v: Input): v is GameInput => v !== 'Menu' && v !== 'Fullscreen' && v !== 'Map')
 
 export const click$ = (elem: HTMLElement) =>
     Observable.fromEvent<MouseEvent>(elem, 'click')
