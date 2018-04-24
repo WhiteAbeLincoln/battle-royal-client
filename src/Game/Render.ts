@@ -2,6 +2,7 @@ import { Rectangle } from './models/World'
 import { State, Dimension, Area, Vec2 } from './models/State'
 import { render as renderViewport } from './models/Viewport'
 import * as WMap from './models/Map'
+import { User } from './models/User';
 
 // tslint:disable:no-expression-statement
 // tslint:disable:no-object-mutation
@@ -70,26 +71,50 @@ const renderSpawn = (spawn: Vec2) =>
   ctx.arc(x, y, 5, 0, 2 * Math.PI)
   ctx.fill()
 }
-const renderPosition = (position: Vec2) =>
+const renderPlayer = (player: User) =>
                     (drawArea: Area) =>
                     (viewport: Dimension) =>
                     (ctx: CanvasRenderingContext2D) => {
   const convert = convertDimAreaPoint(viewport)(drawArea)
 
-  const { x, y } = convert(position)
+  const { x, y } = convert(player.position)
 
-  ctx.fillStyle = 'black'
-  const leftCorner = ({ x: x - 5 , y: y + 5 })
-  const rightCorner = ({ x: x + 5, y: y + 5 })
-  const topCorner = ({ x: x + 5, y: y - 5 })
+  ctx.fillStyle = 'red'
 
   ctx.beginPath()
+  // ctx.save()
+  ctx.translate(x, y)
+  ctx.rotate(Math.atan2(player.direction.y, player.direction.x))
+  const leftCorner = ({ x: -5 , y:  5 })
+  const rightCorner = ({ x: -5 , y:  - 5 })
+  const topCorner = ({ x: 5, y: 0 })
   ctx.moveTo(leftCorner.x, leftCorner.y)
   ctx.lineTo(rightCorner.x, rightCorner.y)
   ctx.lineTo(topCorner.x, topCorner.y)
-  // ctx.arc(x, y, 5, 0, 2 * Math.PI)
+  ctx.rotate((-1) * Math.atan2(player.direction.y, player.direction.x))
+  ctx.translate((-1) * x, (-1) * y)
   ctx.fill()
 }
+// thanks to sourceforge user dan-gph for this dummy proof howto
+
+// function drawImageRot(img,x,y,width,height,deg){
+
+//   //Convert degrees to radian 
+//   var rad = deg * Math.PI / 180;
+
+//   //Set the origin to the center of the image
+//   ctx.translate(x + width / 2, y + height / 2);
+
+//   //Rotate the canvas around the origin
+//   ctx.rotate(rad);
+
+//   //draw the image    
+//   ctx.drawImage(img,width / 2 * (-1),height / 2 * (-1),width,height);
+
+//   //reset the canvas  
+//   ctx.rotate(rad * ( -1 ) );
+//   ctx.translate((x + width / 2) * (-1), (y + height / 2) * (-1));
+// }
 
 export const render = (canvas: HTMLCanvasElement) => (state: State) => {
   const ctx = canvas.getContext('2d')
@@ -109,9 +134,9 @@ export const render = (canvas: HTMLCanvasElement) => (state: State) => {
       , ...state.spawns.map(s => renderSpawn(s)(mapArea)(state.map))
       ]
     : [ WMap.render(state.map)(mapArea),
-      renderPosition(state.player.position)(mapArea)(state.map)
-      , ...state.opponents.map(s => renderPosition(s.position)(mapArea)(state.map))
-      , ...state.projectiles.map(s => renderPosition(s.position)(mapArea)(state.map))
+      renderPlayer(state.player)(mapArea)(state.map)
+      // attempt to render the opponents
+      , ...state.opponents.map(s => renderPlayer(s)(mapArea)(state.map))
     ] // renderViewport(state)(viewArea)(viewArea) ]
 
   render.forEach(f => f(ctx))
