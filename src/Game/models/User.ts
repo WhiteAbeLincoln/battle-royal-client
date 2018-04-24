@@ -3,12 +3,15 @@ import { Ammunition, Weapon, fire, weaponKinds, Projectile } from './Weapon'
 import { Map } from 'immutable'
 import { GameInput } from '../Actions'
 import { Reducer } from '../Game'
-import { rotateVec2, moveDirection } from '../math'
+import { rotateVec2, moveDirection, sub } from '../math'
 import { withContext } from '../Canvas'
 import { convertDimAreaPoint } from '../Render'
+import { Camera } from './Camera'
+import { WorldMap } from './Map'
+import { Polygon } from '../Collision/SAT'
 
 const ROTATE_ANGLE = Math.PI / 12
-const MOVE_DIST = 0.05
+const MOVE_DIST = 0.5
 
 type InventoryItem = Weapon
 
@@ -86,6 +89,15 @@ export const fireWeapon = (user: User): [Projectile | null, User] => {
   return [projectile || null, newUser]
 }
 
+const userPoly: Polygon = {
+  kind: 'polygon',
+  points: [
+    { x: -0.5, y: 0.5 }
+  , { x: 0, y: -0.5 }
+  , { x: 0.5, y: 0.5 }
+  ]
+}
+
 // TODO: make User an Immutable Map, because spread is costly
 /**
  * Given a game input, returns a reducer function
@@ -93,7 +105,7 @@ export const fireWeapon = (user: User): [Projectile | null, User] => {
  * @param input the Game input
  * @returns A user reducer function
  */
-export const userReducer = (input: GameInput): Reducer<User> => {
+export const userReducer = (map: WorldMap) => (input: GameInput): Reducer<User> => {
   switch (input) {
     case 'TurnRight':
       return prev => {
@@ -138,15 +150,22 @@ export const userReducer = (input: GameInput): Reducer<User> => {
 export const render = (user: User) =>
                       (drawArea: Area) =>
                       (viewport: Dimension) =>
+                      (camera: Camera) =>
                       (ctx: CanvasRenderingContext2D) => {
   withContext(c => {
     const cv = convertDimAreaPoint(viewport)(drawArea)
-    // user is rendered as a triangle inset on a 1-meter square
-    const leftCorner = cv({ x: user.position.x - 0.5, y: user.position.y + 0.5 })
-    const rightCorner = cv({ x: user.position.x + 0.5, y: user.position.y + 0.5 })
-    const topCorner = cv({ x: user.position.x, y: user.position.y - 0.5 })
+    const camPos = camera.get('pos')
 
+    // get coordinates of the object relative to the camera
+    const relPos = cv(sub(user.position)(camPos))
+    // user is rendered as a triangle inset on a 1-meter square
+    const leftCorner = cv({ x: -0.5, y: 0.5 })
+    const rightCorner = cv({ x: 0.5, y: 0.5 })
+    const topCorner = cv({ x: 0, y: -0.5 })
+
+    c.translate(relPos.x, relPos.y)
     c.rotate(Math.atan2(user.direction.y, user.direction.x))
+    c.translate(-drawArea.x, -drawArea.y)
 
     c.fillStyle = 'red'
     c.beginPath()

@@ -50,7 +50,7 @@ export const game = (canvas: HTMLCanvasElement,
 
   state$.subscribe(render(canvas))
 
-  camera$.subscribe(c => console.log(c))
+  camera$.subscribe(c => console.log(c.toObject()))
 
   return filter((i): i is 'Menu' => i === 'Menu')(uiInput$)
 }

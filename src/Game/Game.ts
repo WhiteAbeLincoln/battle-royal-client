@@ -162,17 +162,17 @@ export const getState = (socket: SocketIOClient.Socket, canvas: HTMLCanvasElemen
         const point = s[tag]
         return { ...prev, spawnPoint: point, position: point, gamertag: tag }
       }),
-      gameInput$.map(userReducer),
-      updateUser$.map(data => (_: User) => {
+      gameInput$.withLatestFrom(map$).map(([input, map]) => userReducer(map)(input)),
+      updateUser$.withLatestFrom(map$).map(([data, map]) => (prev: User) => {
         // accept the server's authoritative state
-        const newUser = data.data
+        const newUser: User = { ...data.data, inventory: prev.inventory }
 
         // clear the input buffer of all inputs before server's response
         // tslint:disable-next-line:no-expression-statement
         inputSequence.clearTo(data.seq)
 
         // apply all inputs that the server hasn't yet processed
-        const reducers = inputSequence.values().map(userReducer)
+        const reducers = inputSequence.values().map(userReducer(map))
         return reducers.reduce((user, f) => f(user), newUser)
       })
     ).startWith(id)
@@ -211,7 +211,7 @@ export const getState = (socket: SocketIOClient.Socket, canvas: HTMLCanvasElemen
           s ? camUpdate({ x: 0, y: 0, width: m.width, height: m.height })(u.position)(prev)
             : prev
         ))
-    )
+    ).startWith(id)
 
   const camera$ = reduce(new Camera())(cameraReducer$)
 

@@ -6,6 +6,7 @@ import { convertDimAreaPoint } from '../Render'
 import { aabbContains } from '../Collision'
 import { AABB } from '../Collision/minkowski'
 import { Record } from 'immutable'
+import { sub } from '../math'
 
 enum Axis {
   NONE = 'none',
@@ -30,14 +31,15 @@ type CameraBase = {
   axis: Axis
   deadzone: Vec2
   /** position of the item that camera is following */
-  follow?: Vec2
+  follow: Vec2
 }
 
 const cameraDefaults: CameraBase = {
   pos: { x: 0, y: 0 },
   dim: viewport,
   axis: Axis.BOTH,
-  deadzone: { x: viewport.width / 2, y: viewport.height / 2 }
+  deadzone: { x: viewport.width / 2, y: viewport.height / 2 },
+  follow: { x: 0, y: 0 }
 }
 
 // tslint:disable-next-line:no-class
@@ -98,7 +100,7 @@ export const update = (world: Area) => (follow: Vec2) => (c: Camera): Camera => 
       ? (world.y + world.height) - dim.height
     : yView
 
-  return c.merge({ pos: { x: finalX, y: finalY }, follow })
+  return c.set('pos', { x: finalX, y: finalY }).set('follow', follow)
 }
 
 /*-----------------*
@@ -122,14 +124,26 @@ const renderObjects = (os: ReadonlyArray<WorldObject>) =>
 
 export const render = (state: State) =>
                       (drawArea: Area) =>
-                      (map: Dimension) =>
-                      (viewport: Dimension) =>
                       (ctx: CanvasRenderingContext2D) => {
   renderBackground(drawArea)(ctx)
-  const cv = convertDimAreaPoint(map)(drawArea)
-  const viewportArea: Area = { x: state.player.position.x - map.width / 2
-                             , y: state.player.position.y - map.height / 2
-                             , ...map }
+  const camera = state.camera
+
+  const pos = state.camera.get('pos')
+  const viewport = state.camera.get('dim')
+  const cv = convertDimAreaPoint(viewport)(drawArea)
+  const userPos = state.player.position
+  const rel = sub(userPos)(pos)
+
+  ctx.font = '20px Arial'
+  ctx.fillStyle = 'white'
+  ctx.fillText(`${userPos.x}, ${userPos.y}`, drawArea.x, drawArea.y + 40)
+
+  // ctx.fillStyle = 'blue'
+  // ctx.beginPath()
+  // ctx.arc(point.x, point.y, 10, 0, 2 * Math.PI)
+  // ctx.fill()
+
+  renderUser(state.player)(drawArea)(viewport)(camera)(ctx)
 
   // const drawnObjects = [state.player, ]
 

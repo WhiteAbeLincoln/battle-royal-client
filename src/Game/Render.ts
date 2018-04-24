@@ -1,6 +1,7 @@
 import { Rectangle } from './models/World'
 import { State, Dimension, Area, Vec2 } from './models/State'
 import * as WMap from './models/Map'
+import { Camera, render as renderView } from './models/Camera'
 
 // tslint:disable:no-expression-statement
 // tslint:disable:no-object-mutation
@@ -66,8 +67,27 @@ const renderSpawn = (spawn: Vec2) =>
 
   ctx.fillStyle = 'red'
   ctx.beginPath()
-  ctx.arc(x, y, 5, 0, 2 * Math.PI)
+  ctx.arc(x, y, 1, 0, 2 * Math.PI)
   ctx.fill()
+}
+
+const renderCamera = (c: Camera) =>
+                     (drawArea: Area) =>
+                     (viewport: Dimension) =>
+                     (ctx: CanvasRenderingContext2D) => {
+  const convert = convertDimAreaPoint(viewport)(drawArea)
+
+  const pos = c.get('pos')
+  const { x: x1, y: y1 } = convert({ x: pos.x, y: pos.y })
+  const dim = c.get('dim')
+  const { x: x2, y: y2 } = convert({ x: pos.x + dim.width, y: pos.y + dim.height })
+
+  ctx.strokeStyle = 'blue'
+  ctx.strokeRect(x1, y1, x2 - x1, y2 - y1)
+}
+
+const transparency = (alpha: number) => (ctx: CanvasRenderingContext2D) => {
+  ctx.globalAlpha = alpha
 }
 
 export const render = (canvas: HTMLCanvasElement) => (state: State) => {
@@ -81,13 +101,23 @@ export const render = (canvas: HTMLCanvasElement) => (state: State) => {
   ctx.clearRect(0, 0, width, height)
 
   const mapArea = getArea(state.map, width, height)
-  // const viewArea = getArea(state.viewport, width, height)
+  const viewArea = getArea(state.camera.get('dim'), width, height)
+  const vaRight = viewArea.x + viewArea.width
+  const vaBottom = viewArea.y + viewArea.height
+  const mapSize = 200
+  const miniMapArea = { ...getArea(state.map, mapSize, mapSize), x: vaRight - mapSize, y: vaBottom - mapSize }
 
   const render = (!state.started)
     ? [ WMap.render(state.map)(mapArea)
       , ...state.spawns.map(s => renderSpawn(s)(mapArea)(state.map))
-      ] : []
-    // : [ renderViewport(state)(viewArea)(state.map)(state.viewport) ]
+      ]
+    : [ renderView(state)(viewArea)
+      , transparency(0.5)
+      , WMap.render(state.map)(miniMapArea)
+      , renderSpawn(state.player.position)(miniMapArea)(state.map)
+      , transparency(1)
+      , renderCamera(state.camera)(miniMapArea)(state.map)
+      ]
 
   render.forEach(f => f(ctx))
 }
