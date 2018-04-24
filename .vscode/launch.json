@@ -5,6 +5,12 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Tests",
+      "program": "${workspaceFolder}/scripts/test.js"
+    },
+    {
       "type": "chrome",
       "request": "launch",
       "name": "Launch Chrome Debugger",
@@ -12,7 +18,6 @@
       "userDataDir": "${workspaceFolder}/.vscode/chrome",
       "internalConsoleOptions": "openOnSessionStart",
       "sourceMaps": true,
-      "trace": "verbose",
       "url": "http://localhost:3001",
       "webRoot": "${workspaceFolder}",
       "env": {

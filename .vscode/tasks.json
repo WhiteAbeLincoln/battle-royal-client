@@ -11,6 +11,11 @@
           "PORT": "3001"
         }
       }
+    },
+    {
+      "type": "npm",
+      "script": "test:coverage",
+      "problemMatcher": []
     }
   ]
 }

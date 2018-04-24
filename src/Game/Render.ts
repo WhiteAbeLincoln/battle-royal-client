@@ -1,6 +1,5 @@
 import { Rectangle } from './models/World'
 import { State, Dimension, Area, Vec2 } from './models/State'
-import { render as renderViewport } from './models/Viewport'
 import * as WMap from './models/Map'
 
 // tslint:disable:no-expression-statement
@@ -82,13 +81,13 @@ export const render = (canvas: HTMLCanvasElement) => (state: State) => {
   ctx.clearRect(0, 0, width, height)
 
   const mapArea = getArea(state.map, width, height)
-  const viewArea = getArea(state.viewport, width, height)
+  // const viewArea = getArea(state.viewport, width, height)
 
   const render = (!state.started)
     ? [ WMap.render(state.map)(mapArea)
       , ...state.spawns.map(s => renderSpawn(s)(mapArea)(state.map))
-      ]
-    : [ renderViewport(state)(viewArea)(viewArea) ]
+      ] : []
+    // : [ renderViewport(state)(viewArea)(state.map)(state.viewport) ]
 
   render.forEach(f => f(ctx))
 }

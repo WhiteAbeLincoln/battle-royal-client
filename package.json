@@ -34,7 +34,7 @@
     "fscreen": "^1.0.2",
     "html-webpack-plugin": "2.29.0",
     "immutable": "^3.8.2",
-    "jest": "20.0.4",
+    "jest": "^22.4.3",
     "mathjs": "^4.1.2",
     "object-assign": "4.1.1",
     "polished": "^1.9.2",
@@ -66,13 +66,16 @@
     "start": "node scripts/start.js",
     "build": "node scripts/build.js",
     "test": "node scripts/test.js --env=jsdom",
+    "test:coverage": "node scripts/test.js --coverage",
     "flow": "flow"
   },
   "devDependencies": {
+    "@types/jest": "^22.2.3",
     "@types/mathjs": "^3.20.0",
     "@types/react": "^16.3.12",
     "@types/socket.io-client": "^1.4.32",
     "flow-bin": "^0.69.0",
+    "ts-jest": "^22.4.4",
     "tslint": "^5.9.1",
     "tslint-config-standard": "^7.0.0",
     "tslint-immutable": "^4.5.4",
@@ -80,24 +83,28 @@
   },
   "jest": {
     "collectCoverageFrom": [
-      "src/**/*.{js,jsx,mjs}"
+      "src/**/*.{js,jsx,mjs,ts,tsx}"
+    ],
+    "coveragePathIgnorePatterns": [
+      ".*.d.ts"
     ],
     "setupFiles": [
       "<rootDir>/config/polyfills.js"
     ],
     "testMatch": [
-      "<rootDir>/src/**/__tests__/**/*.{js,jsx,mjs}",
-      "<rootDir>/src/**/?(*.)(spec|test).{js,jsx,mjs}"
+      "<rootDir>/src/**/__tests__/**/*.{js,jsx,mjs,ts,tsx}",
+      "<rootDir>/src/**/?(*.)(spec|test).{js,jsx,mjs,ts,tsx}"
     ],
     "testEnvironment": "node",
     "testURL": "http://localhost",
     "transform": {
+      "^.+\\.(ts|tsx)$": "<rootDir>/node_modules/ts-jest/preprocessor.js",
       "^.+\\.(js|jsx|mjs)$": "<rootDir>/node_modules/babel-jest",
       "^.+\\.css$": "<rootDir>/config/jest/cssTransform.js",
       "^(?!.*\\.(js|jsx|mjs|css|json)$)": "<rootDir>/config/jest/fileTransform.js"
     },
     "transformIgnorePatterns": [
-      "[/\\\\]node_modules[/\\\\].+\\.(js|jsx|mjs)$"
+      "[/\\\\]node_modules[/\\\\].+\\.(js|jsx|mjs|ts|tsx)$"
     ],
     "moduleNameMapper": {
       "^react-native$": "react-native-web"
@@ -109,7 +116,9 @@
       "web.jsx",
       "jsx",
       "node",
-      "mjs"
+      "mjs",
+      "ts",
+      "tsx"
     ]
   },
   "babel": {

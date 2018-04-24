@@ -1,4 +1,4 @@
-import { Vec2, Dimension, Area } from './State'
+import { Vec2, Dimension, Area, Movable } from './State'
 import { Ammunition, Weapon, fire, weaponKinds, Projectile } from './Weapon'
 import { Map } from 'immutable'
 import { GameInput } from '../Actions'
@@ -47,16 +47,14 @@ export const removeAmmo = (i: Ammunition) => (inv: Inventory): Inventory => {
   return { ...inv, ammunition }
 }
 
-export interface User {
+export type User = {
   readonly kind: 'user'
   readonly spawnPoint: Vec2
-  readonly direction: Vec2
-  readonly position: Vec2
   readonly health: number
   readonly inventory: Inventory
   readonly score: number
   readonly gamertag: string
-}
+} & Movable
 
 export const blankUser = (): User => ({
   kind: 'user'

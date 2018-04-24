@@ -2,6 +2,7 @@ import { getState } from './Game'
 import { getArea, convert, render } from './Render'
 import { Observable } from 'rxjs/Observable'
 import fscreen from 'fscreen'
+import { filter } from 'rxjs/operators'
 
 /**
  * Starts a game and returns an observable which emits when the menu key is hit
@@ -9,14 +10,12 @@ import fscreen from 'fscreen'
 export const game = (canvas: HTMLCanvasElement,
                      socket: SocketIOClient.Socket,
                      menuOpen$: Observable<boolean>) => () => {
-  const { map$
-        , state$
-        , start$
-        , input$
+  const { state$
         , uiInput$
-        , gameInput$
+        , inputSequence$
         , pickSpawn$
         , user$
+        , camera$
         } = getState(socket, canvas, menuOpen$)
 
   // tslint:disable:no-expression-statement
@@ -43,17 +42,15 @@ export const game = (canvas: HTMLCanvasElement,
     // tslint:enable:no-object-mutation
   })
 
-  // tslint:disable:no-let
-  let seq = 0
-
-  gameInput$.subscribe(v => {
-    socket.emit('user_action', { action: v, seq })
-    seq++
+  inputSequence$.subscribe(v => {
+    socket.emit('user_action', v)
   })
 
   user$.subscribe(u => console.log(u))
 
   state$.subscribe(render(canvas))
 
-  return uiInput$.filter((i): i is 'Menu' => i === 'Menu')
+  camera$.subscribe(c => console.log(c))
+
+  return filter((i): i is 'Menu' => i === 'Menu')(uiInput$)
 }

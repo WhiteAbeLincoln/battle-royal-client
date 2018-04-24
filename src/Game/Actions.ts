@@ -102,6 +102,8 @@ const isGameKey = (gameKeys: ReadonlyArray<string>) => (key: string) => {
   return gameKeys.includes(key)
 }
 
+export const resize$ = Observable.fromEvent<UIEvent>(window, 'resize')
+
 export type GameInput =
           | 'TurnLeft'
           | 'TurnRight'

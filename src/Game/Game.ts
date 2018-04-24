@@ -2,9 +2,9 @@ import { getArea, convert } from './Render'
 import { animation$, updateMap$, newSpawn$, startGame$, input$ as keyInput$,
   Input, chatFocused$, GameInput, UIInput, clickCoordinates$,
   updateState$, filterPlayer, filterUIInput, filterGameInput,
-  filterOpponents, filterProjectiles } from './Actions'
+  filterOpponents, filterProjectiles, resize$ } from './Actions'
 import * as io from 'socket.io-client'
-import { State, Vec2 } from './models/State'
+import { State, Vec2, Area } from './models/State'
 import { Projectile } from './models/Weapon'
 import fscreen from 'fscreen'
 import { scan, filter, map } from 'rxjs/operators'
@@ -20,6 +20,7 @@ import 'rxjs/add/observable/merge'
 import { Observable } from 'rxjs/Observable'
 import { blankUser, User, fireWeapon, userReducer } from './models/User'
 import { rotateVec2, moveDirection } from './math'
+import { Camera, update as camUpdate } from './models/Camera'
 
 /**
  * An observable for time elapsed between animation frames
@@ -193,24 +194,47 @@ export const getState = (socket: SocketIOClient.Socket, canvas: HTMLCanvasElemen
 
   const projectiles$ = reduce([] as ReadonlyArray<Projectile>)(projectileReducer$)
 
-  const ratio = 16 / 9
-  // Window has 16:9 ratio and is 15 meters wide
-  /**
-   * A viewport in world units
-   */
-  const viewport = { width: 15, height: 15 * (1 / ratio) }
+  const cameraReducer$: ReducerStream<Camera> =
+    Observable.merge(
+      user$
+        .withLatestFrom(map$)
+        .map(([u, m]) => (prev: Camera) => (
+          (prev.get('pos').x !== u.position.x
+            && prev.get('pos').y !== u.position.y
+            ? camUpdate({ x: 0, y: 0, width: m.width, height: m.height })(u.position)(prev)
+            : prev
+          )
+        )),
+      start$
+        .withLatestFrom(user$, map$)
+        .map(([s, u, m]) => (prev: Camera) => (
+          s ? camUpdate({ x: 0, y: 0, width: m.width, height: m.height })(u.position)(prev)
+            : prev
+        ))
+    )
+
+  const camera$ = reduce(new Camera())(cameraReducer$)
+
+  // const drawAreaReducer$: ReducerStream<Area> =
+  //   Observable.merge(
+  //     resize$
+  //       .withLatestFrom(start$)
+  //       .map(([_, s]) => {
+
+  //       })
+  //   )
 
   const state$: Observable<State> =
-    clock$.withLatestFrom(map$, spawns$, start$, user$, projectiles$,
-            (elapsed, map, spawns, started, player, projectiles): State => ({
+    clock$.withLatestFrom(map$, spawns$, start$, user$, projectiles$, camera$,
+            (elapsed, map, spawns, started, player, projectiles, camera): State => ({
               elapsedTime: elapsed
             , spawns
             , map
             , started
-            , viewport
             , player
             , opponents: []
             , projectiles
+            , camera
             }))
 
   return { map$
@@ -219,8 +243,10 @@ export const getState = (socket: SocketIOClient.Socket, canvas: HTMLCanvasElemen
          , start$
          , input$: pauseInput$
          , gameInput$
+         , inputSequence$: inputSequence.obs
          , uiInput$
          , pickSpawn$
          , user$
+         , camera$
          }
 }

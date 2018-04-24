@@ -2,6 +2,7 @@ import { WorldObject } from './World'
 import { WorldMap } from './Map'
 import { User } from './User'
 import { Projectile } from './Weapon'
+import { Camera } from './Camera'
 
 export type Vec2 = {
   readonly x: number,
@@ -13,6 +14,12 @@ export interface Dimension {
   readonly height: number
 }
 export type Area = Vec2 & Dimension
+
+export type Movable = {
+  position: Vec2
+  direction: Vec2
+  velocity?: Vec2
+}
 
 /*
 Ways to reason about our state over time:
@@ -28,8 +35,8 @@ export type State = {
   readonly spawns: ReadonlyArray<Vec2>,
   readonly elapsedTime: number,
   readonly started: boolean,
-  readonly viewport: { readonly width: number, readonly height: number }
   readonly player: User
   readonly opponents: ReadonlyArray<User>
   readonly projectiles: ReadonlyArray<Projectile>
+  readonly camera: Camera
 }

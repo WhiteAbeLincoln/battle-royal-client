@@ -22,7 +22,7 @@ export interface Circle extends WorldObjectBase {
 
 export interface Polygon extends WorldObjectBase {
   readonly kind: 'polygon',
-  readonly edges: ReadonlyArray<Vec2>
+  readonly points: ReadonlyArray<Vec2>
 }
 
 export type WorldObject = Rectangle | Circle | Polygon
